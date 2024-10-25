@@ -1,0 +1,11 @@
+langchain==0.3.4
+langchain_chroma==0.1.4
+langchain_community==0.3.3
+langchain_core==0.3.13
+langchain_experimental==0.3.2
+langchain_openai==0.2.3
+langgraph==0.2.39
+pandas==2.2.3
+Requests==2.32.3
+streamlit==1.39.0
+typing_extensions==4.12.2

@@ -6,6 +6,7 @@ langchain_experimental==0.3.2
 langchain_openai==0.2.3
 langgraph==0.2.39
 pandas==2.2.3
+protobuf==3.20.2
 Requests==2.32.3
 streamlit==1.39.0
 typing_extensions==4.12.2

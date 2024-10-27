@@ -18,6 +18,8 @@ if openai_api_key is None:
 if ready:
 
     """
+    Last Updated: 27 Oct 2024
+
     The Resale Q&A and Price Buddies are implemented through the Langchain and Langgraph libraries.
 
 
@@ -59,7 +61,36 @@ if ready:
 
     Resale Price Buddy is assistant for specific queries related to resale HDB flat prices, based on data from 2017 onwards sourced from [data.gov.sg](https://data.gov.sg).
 
-    
+    Langgraph is used again to create a sequential workflow that passes the user query through three nodes:
+
+    1. **Entity Extraction:** If the user query is deemed relevant, extracts entities that relate to the HDB Resale Price dataset on data.gov.sg's API parameters.
+        Some entity mapping dictionaries are provided to guide this node, e.g. mapping between all `street_name` components and their abbreviations ("Jalan" : "JLN").
+        Extracted entities are passed on as a JSON string. For instance, 
+        
+        ```json
+        {
+        "street_name": "BEDOK NTH RD",
+        "block": ["180", "181", "182", "183", "184", "185"],
+        "flat_type": "4 ROOM",
+        "month": ["2023-10", "2023-11", "2023-12"]
+        }
+        ```
+
+        ***Not working entirely well:*** The assistant is fed with the chat history although its not always able to discern the correct entities to extract if given a follow-up prompt
+        E.g. 
+            - Query 1: Fetch me flat prices from block 8B Upper Boon Keng Road sold in 2022. 
+            *Correct entities extracted*
+            - Query 2: Fetch me for blocks 8A and 8C. 
+            *May or may not discern that the query still refers to "Upper Boon Keng Road" and "2022".
+
+    2. **API Call:** Simply takes in the API paramters and retrieves data from the source, returning a dataframe serialised into JSON.
+
+    3. **Data Analysis:** Exploits the `create_pandas_dataframe_agent` agent to analyse the retrieved data according to the user query and returns the response. 
+        
+        ***Still buggy:*** I've noticed the agent gets caught "explaining the answer" rather than directly answering the query. Not sure if this seems to be mostly
+        from more complex queries (e.g. calculate the annual trend), sample size is still small. This output is always truncated so I might need to try upping the 
+        max tokens just to see. For now, I've tried to mitigate by adding a `prefix` that tells the LLM to provide the answer directly and not to show any code.
+
     
     """
 

@@ -1,3 +1,4 @@
+import os
 import time
 from typing import Sequence
 
@@ -195,12 +196,13 @@ def get_rag_chain(llm, retriever):
 def run():
     ready = True
     # Check if the API key is in session_state
-    openai_api_key = check_openai_api()
-    if openai_api_key is None:
+    api_key = check_openai_api()
+    os.environ["OPENAI_API_KEY"] = api_key
+    if api_key is None:
         ready = False
         
     if ready:
-        retriever, llm = init_llm(openai_api_key)
+        retriever, llm = init_llm(api_key)
         st.success("Knowledge base loaded!")
 
         # Step 2: Set up the RAG chain (with history awareness)

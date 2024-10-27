@@ -1,5 +1,6 @@
 from io import StringIO
 import json
+import os
 import random
 import requests
 import time
@@ -96,113 +97,121 @@ street_abbreviations_str = "; ".join([f"{k} → {v}" for k, v in STREET_ABBREVIA
 valid_flat_types_str = ", ".join(VALID_FLAT_TYPES)
 
 
+@st.cache_resource
+def init_llm(openai_api_key):
+    llm = ChatOpenAI(model='gpt-4o-mini', openai_api_key=openai_api_key,  temperature=0)
+    return llm
 
-llm = ChatOpenAI(model='gpt-4o-mini', temperature=0)
-# Define a prompt template for extracting entities
-prompt_template = f"""
-You are an assistant helping a user query transaction price data from data.gov.sg about HDB resale flats. 
-A. Determine if the user query is related to HDB resale price information.
-    If yes,
-    - Determine from chat history {{chat_history_2}}  whether to reuse previously retrieved data or make a new API call
-    - Extract necessary entities from each query, returning them in JSON format.
+def get_entity_chain(llm):
+    # Define a prompt template for extracting entities
+    prompt_template = f"""
+    You are an assistant helping a user query transaction price data from data.gov.sg about HDB resale flats. 
+    A. Determine if the user query is related to HDB resale price information.
+        If yes,
+        - Determine from chat history {{chat_history_2}}  whether to reuse previously retrieved data or make a new API call
+        - Extract necessary entities from each query, returning them in JSON format.
 
-If the question is about your data/knowledge source, kindly respond that your information is sourced from data.gov.sg and not from 
-any third-party or non-government websites.    
+    If the question is about your data/knowledge source, kindly respond that your information is sourced from data.gov.sg and not from 
+    any third-party or non-government websites.    
 
-Only if you are absolutely sure that the user's query is unrelated (e.g. "hello!", "do you like pancakes?", etc.), politely respond that you are not designed to converse about unrelated topics
+    Only if you are absolutely sure that the user's query is unrelated (e.g. "hello!", "do you like pancakes?", etc.), politely respond that you are not designed to converse about unrelated topics
 
 
-If you've determined that you need to make a new API call
-Extract the following entities based on the query context, returning them in JSON format:
+    If you've determined that you need to make a new API call
+    Extract the following entities based on the query context, returning them in JSON format:
 
-1. "street_name": The street name (convert any street name parts by using these (not case-sensitive) abbreviations: {street_abbreviations_str}). 
-    For example, "Jalan bukit merah" -> "JLN BT MERAH"
-    Extract this if a specific street is mentioned.
+    1. "street_name": The street name (convert any street name parts by using these (not case-sensitive) abbreviations: {street_abbreviations_str}). 
+        For example, "Jalan bukit merah" -> "JLN BT MERAH"
+        Extract this if a specific street is mentioned.
 
-2. "town": The town (must match one of these: {valid_towns_str}). 
-    Extract this if no street name is provided but the query mentions a valid town.
+    2. "town": The town (must match one of these: {valid_towns_str}). 
+        Extract this if no street name is provided but the query mentions a valid town.
 
-Additionally, if mentioned, extract the following optional entities:
+    Additionally, if mentioned, extract the following optional entities:
 
-- "flat_type": The classification of flats by room size (must match one of these: {valid_flat_types_str}).
-- "block": A specific HDB block number, typically numerical (e.g., 182 or 182C). Often precedes the street name.
-- "storey_range": A floor range, expressed in intervals of 3 floors, are one of the following: "01 TO 03", "04 TO 06", "07 TO 09", ...
-- "month": A transaction month that must be in "YYYY-MM" format (e.g., "2023-10", "2018-07").
+    - "flat_type": The classification of flats by room size (must match one of these: {valid_flat_types_str}).
+    - "block": A specific HDB block number, typically numerical (e.g., 182 or 182C). Often precedes the street name.
+    - "storey_range": A floor range, expressed in intervals of 3 floors, are one of the following: "01 TO 03", "04 TO 06", "07 TO 09", ...
+    - "month": A transaction month that must be in "YYYY-MM" format (e.g., "2023-10", "2018-07").
 
-Do not extract or add additional entities that are not mentioned above.
+    Do not extract or add additional entities that are not mentioned above.
 
-### Notes:
-- If multiple values for an entity are present, return them as a list.
-- If the query mentions a block or storey range not in the list of valid entities, ask the user for clarification.
+    ### Notes:
+    - If multiple values for an entity are present, return them as a list.
+    - If the query mentions a block or storey range not in the list of valid entities, ask the user for clarification.
 
-### Examples:
+    ### Examples:
 
-1. Query: "Return me resale prices for 3 and 4-room flats in 8B Upper Boon Keng Road"
-    Extracted:
-        "street_name": "UPP BOON KENG RD",
-        "block": "8B",
-        "flat_type": ["3 ROOM", "4 ROOM"]
+    1. Query: "Return me resale prices for 3 and 4-room flats in 8B Upper Boon Keng Road"
+        Extracted:
+            "street_name": "UPP BOON KENG RD",
+            "block": "8B",
+            "flat_type": ["3 ROOM", "4 ROOM"]
 
-2. Query: "Return me prices for 1st to 9th floor 5-room flats in Yishun Ring Road"
-    Extracted:
-        "street_name": "YISHUN RING RD",
-        "flat_type": "5 ROOM",
-        "storey_range": ["01 TO 03", "04 TO 06", "07 TO 09"]
+    2. Query: "Return me prices for 1st to 9th floor 5-room flats in Yishun Ring Road"
+        Extracted:
+            "street_name": "YISHUN RING RD",
+            "flat_type": "5 ROOM",
+            "storey_range": ["01 TO 03", "04 TO 06", "07 TO 09"]
 
-3. Query: "Show 4-room flats sold in 180-185 Bedok North Road from October 2023 to April 2024"
-    Extracted:
-        "street_name": "BEDOK NTH RD",
-        "block": ["180", "181", "182", "183", "184", "185"],
-        "flat_type": "4 ROOM",
-        "month": ["2023-10", "2023-11", "2023-12", "2024-01", "2024-02", "2024-03", "2024-04"]
+    3. Query: "Show 4-room flats sold in 180-185 Bedok North Road from October 2023 to April 2024"
+        Extracted:
+            "street_name": "BEDOK NTH RD",
+            "block": ["180", "181", "182", "183", "184", "185"],
+            "flat_type": "4 ROOM",
+            "month": ["2023-10", "2023-11", "2023-12", "2024-01", "2024-02", "2024-03", "2024-04"]
 
-4. Query: "Show 4 and 5-room flats in Marine Parade Central sold in January 2023 and March 2024"
-    Extracted:
-        "street_name": "MARINE PARADE CTRL",
-        "flat_type": ["4 ROOM", "5 ROOM"],
-        "month": ["2023-01", "2024-03"]
+    4. Query: "Show 4 and 5-room flats in Marine Parade Central sold in January 2023 and March 2024"
+        Extracted:
+            "street_name": "MARINE PARADE CTRL",
+            "flat_type": ["4 ROOM", "5 ROOM"],
+            "month": ["2023-01", "2024-03"]
 
-5. Query: "What was the average price per HDB town in 2019?"
-    Extracted:
-        "month": ["2019-01", "2019-02", "2019-03", "2019-04", "2019-05", "2019-06", "2019-07", "2019-08", "2019-09", "2019-10", "2019-11", "2019-12" ]
+    5. Query: "What was the average price per HDB town in 2019?"
+        Extracted:
+            "month": ["2019-01", "2019-02", "2019-03", "2019-04", "2019-05", "2019-06", "2019-07", "2019-08", "2019-09", "2019-10", "2019-11", "2019-12" ]
 
-6. Query: "What are the average price of 5-Room flats at `Tampines Street 34` from Oct 2023 to Sep 2024, for each category of floor level?"
-    Extracted:
-        "street_name": "TAMPINES ST 34",
-        "flat_type": ["5 ROOM"],
-        "month": ["2023-10", "2023-11", "2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08", "2024-09"]         
+    6. Query: "What are the average price of 5-Room flats at `Tampines Street 34` from Oct 2023 to Sep 2024, for each category of floor level?"
+        Extracted:
+            "street_name": "TAMPINES ST 34",
+            "flat_type": ["5 ROOM"],
+            "month": ["2023-10", "2023-11", "2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08", "2024-09"]         
 
-Question: {{input}}
-"""
+    Question: {{input}}
+    """
 
-# Initialize LangChain
-prompt_hdb = ChatPromptTemplate.from_messages(
-    [
-        ("system", prompt_template),
-        MessagesPlaceholder("chat_history_2"),
-        ("human", "{input}"),
-    ]
-)
+    # Initialize LangChain
+    prompt_hdb = ChatPromptTemplate.from_messages(
+        [
+            ("system", prompt_template),
+            MessagesPlaceholder("chat_history_2"),
+            ("human", "{input}"),
+        ]
+    )
 
-entity_extraction_chain = (
-    RunnablePassthrough()
-    | prompt_hdb
-    | llm
-    | JsonOutputParser()
-)
+    entity_extraction_chain = (
+        RunnablePassthrough()
+        | prompt_hdb
+        | llm
+        | JsonOutputParser()
+    )                   
+
+    return entity_extraction_chain
 
 
 def run():
     ready = True
     
     # Check if the API key is in session_state
-    openai_api_key = check_openai_api()
-    if openai_api_key is None:
+    api_key = check_openai_api()
+    os.environ["OPENAI_API_KEY"] = api_key
+    if api_key is None:
         ready = False
 
     if ready:
 
-        # 
+        llm = init_llm(api_key)
+        entity_extraction_chain = get_entity_chain(llm)
         if "chat_history_2" not in st.session_state:
             st.session_state.chat_history_2=[
                 AIMessage(content="Hi there! I'm the HDB Resale Price Buddy! What would you like to ask?")

@@ -21,6 +21,8 @@ if ready:
     This application was developed as part of the Project Phase of the Pilot Run of GovTech's **AI Champions**
     Bootcamp (2024), under Project Type C: Capstone Assignment.
 
+    Project Repository: https://github.com/glad94/hdb-resale-buddy/
+
     ### Objectives
     - Develop a web-based application that enables citizens to interact seamlessly with publicly available 
     information regarding a specific process or transaction with the government. 
@@ -35,4 +37,5 @@ if ready:
     Although data is sourced from official channels, it is not guaranteed that the AI assistants will 
     repond with 100% accurate and factual information. Please view the usage disclaimer on the Home page.
     
+    Feel free to get in touch with me through a channel on my [Github profile](https://github.com/glad94) :)
     """

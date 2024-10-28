@@ -334,19 +334,10 @@ def run():
         def analyse(state: DataState):
             data = state['data']
             df = pd.read_json(StringIO(data))
-            prefix = """
-            You are a helpful assistant specialised in analysing data with a pandas dataframe in Python. The name of the dataframe is `df`.
-            
-            Provide only a concise natural language response with a polite tone that directly answers the question.
-
-            If you are quoting a monetary value in your answer, add a '$' symbol before the value.
-            
-            Do not provide code. 
-
-            """
             agent = create_pandas_dataframe_agent(llm,
                                                     df,
-                                                    prefix=prefix,
+                                                    # prefix=prefix,
+                                                    # include_df_in_prompt=True,
                                                     allow_dangerous_code=True,
                                                     agent_type=AgentType.OPENAI_FUNCTIONS)
             response = agent.invoke(state['input'])

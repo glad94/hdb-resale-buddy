@@ -1,13 +1,13 @@
 import streamlit as st
 from utility import check_password, check_openai_api
 
-st.set_page_config(page_title="Methodology", page_icon="🏢")
-st.title("🏢 Methodology")
+st.set_page_config(page_title="Methodology", page_icon="👨🏻‍💻")
 
 # Do not continue if check_password is not True.  
 if not check_password():  
     st.stop()
 # endregion <--------- Streamlit Page Configuration --------->
+st.title("👨🏻‍💻 Methodology")
 
 ready = True
 # Check if the API key is in session_state
@@ -18,14 +18,17 @@ if openai_api_key is None:
 if ready:
 
     """
-    Last Updated: 27 Oct 2024
+    Last Updated: 28 Oct 2024
 
     The Resale Q&A and Price Buddies are implemented through the Langchain and Langgraph libraries.
 
 
     ### Resale Q&A Buddy
     Resale Q&A Buddy is a Retrieval Augmented Generation (RAG) application that provides assistance with queries related to buying a resale HDB flat in Singapore.
+    """
+    st.image("./assets/flowchart_resale-qna-buddy.png")
 
+    """
     1. **Vector Store Creation**: The buddy's knowledge base is created "offline" by scraping pages from the official HDB website
     that relate to the resale buying process. The contents are then semantically chunked, embedded via the 'text-embedding-3-small'
     model, and stored in a vector store.
@@ -60,19 +63,23 @@ if ready:
     ### Resale Price Buddy
 
     Resale Price Buddy is assistant for specific queries related to resale HDB flat prices, based on data from 2017 onwards sourced from [data.gov.sg](https://data.gov.sg).
+    """
 
+    st.image("./assets/flowchart_resale-price-buddy.png")
+    """
     Langgraph is used again to create a sequential workflow that passes the user query through three nodes:
 
     1. **Entity Extraction:** If the user query is deemed relevant, extracts entities that relate to the HDB Resale Price dataset on data.gov.sg's API parameters.
         Some entity mapping dictionaries are provided to guide this node, e.g. mapping between all `street_name` components and their abbreviations ("Jalan" : "JLN").
         Extracted entities are passed on as a JSON string. For instance, 
         
+        ***Example Query:*** *What was the average price of 4-room flats sold at Yishun Street 72 for each month in 2024?*
+
         ```json
         {
-        "street_name": "BEDOK NTH RD",
-        "block": ["180", "181", "182", "183", "184", "185"],
         "flat_type": "4 ROOM",
-        "month": ["2023-10", "2023-11", "2023-12"]
+        "street_name": ["YISHUN ST 72"],
+        "month": ["2024-01", "2024-02", "2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08", "2024-09", "2024-10"]
         }
         ```
 
@@ -85,13 +92,37 @@ if ready:
 
     2. **API Call:** Simply takes in the API paramters and retrieves data from the source, returning a dataframe serialised into JSON.
 
+    ```
+    |    |    _id | month   | town   | flat_type   |   block | street_name   | storey_range   |   floor_area_sqm | flat_model     |   lease_commence_date | remaining_lease    |   resale_price |
+    |---:|-------:|:--------|:-------|:------------|--------:|:--------------|:---------------|-----------------:|:---------------|----------------------:|:-------------------|---------------:|
+    |  0 | 171717 | 2024-01 | YISHUN | 4 ROOM      |     738 | YISHUN ST 72  | 04 TO 06       |               91 | New Generation |                  1985 | 60 years 01 month  |         540000 |
+    |  1 | 171718 | 2024-01 | YISHUN | 4 ROOM      |     757 | YISHUN ST 72  | 10 TO 12       |               84 | Simplified     |                  1986 | 61 years 11 months |         488000 |
+    |  2 | 171719 | 2024-01 | YISHUN | 4 ROOM      |     738 | YISHUN ST 72  | 01 TO 03       |               91 | New Generation |                  1985 | 60 years 01 month  |         470000 |
+    |  3 | 173861 | 2024-02 | YISHUN | 4 ROOM      |     756 | YISHUN ST 72  | 07 TO 09       |               84 | Simplified     |                  1985 | 60 years 10 months |         455000 |
+    |  4 | 175903 | 2024-03 | YISHUN | 4 ROOM      |     756 | YISHUN ST 72  | 01 TO 03       |               84 | Simplified     |                  1985 | 60 years 08 months |         435000 |
+    ```
+    
     3. **Data Analysis:** Exploits the `create_pandas_dataframe_agent` agent to analyse the retrieved data according to the user query and returns the response. 
         
-        ***Still buggy:*** I've noticed the agent gets caught "explaining the answer" rather than directly answering the query. Not sure if this seems to be mostly
-        from more complex queries (e.g. calculate the annual trend), sample size is still small. This output is always truncated so I might need to try upping the 
-        max tokens just to see. For now, I've tried to mitigate by adding a `prefix` that tells the LLM to provide the answer directly and not to show any code.
+        ```python
+        agent = create_pandas_dataframe_agent(llm,
+                                                df,
+                                                prefix=prefix,
+                                                allow_dangerous_code=True,
+                                                agent_type=AgentType.OPENAI_FUNCTIONS)
 
+        ```
     
+        ***Response:*** *The average resale prices of 4-room flats sold at Yishun Street 72 for each month in 2024 are as follows:*
+
+        - *January 2024: $499,333.33*
+        - *February 2024: $455,000.00*
+        - *March 2024: $490,000.00*
+
+        
+        ***Still buggy:*** I've noticed the agent gets stuck "explaining how to derive the answer without providing the answer" at times. Not sure if this seems to be mostly
+        from more complex queries (e.g. calculate the annual trend), sample size is still small. Yet to find a reliable solution (TO-FIX). 
+        
     """
 
 else:

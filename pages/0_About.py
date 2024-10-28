@@ -1,13 +1,13 @@
 import streamlit as st
 from utility import check_password, check_openai_api
 
-st.set_page_config(page_title="About", page_icon="🏢")
-st.title("🏢 About")
+st.set_page_config(page_title="About", page_icon="❓")
 
 # Do not continue if check_password is not True.  
 if not check_password():  
     st.stop()
 # endregion <--------- Streamlit Page Configuration --------->
+st.title("❓ About")
 
 ready = True
 # Check if the API key is in session_state
@@ -29,8 +29,8 @@ if ready:
     in the way that is customised based user inputs and in the highly effective formats for the users to consume the information.
     
     ### Data Sources
-    - Official HDB Website
-    - HDB Resale Flat Transactions (2017 onwards) - Data.gov.sg
+    - [Official HDB Website](https://www.hdb.gov.sg/)
+    - [HDB Resale Flat Transactions (2017 onwards) - Data.gov.sg](https://data.gov.sg/datasets/d_8b84c4ee58e3cfc0ece0d773c8ca6abc/view?dataExplorerPage=19199)
 
     Although data is sourced from official channels, it is not guaranteed that the AI assistants will 
     repond with 100% accurate and factual information. Please view the usage disclaimer on the Home page.

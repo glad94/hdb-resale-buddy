@@ -321,7 +321,10 @@ def run():
             # Make the API call here using requests as shown before
             # response = requests.get(url, params=api_params, headers=headers)
             # df = pd.DataFrame(response.json()['result']['records'])
-            final_df = pd.concat(all_dataframes, ignore_index=True)
+            if not all_dataframes:
+                final_df = pd.concat(all_dataframes, ignore_index=True)
+            else: # Handle case of no data retrieved
+                final_df = pd.DataFrame([])
             st.chat_message("AI").write(f"""
                 Retrieved the following data with total {total_retrieved} rows (up to first 100 shown)
                     """)

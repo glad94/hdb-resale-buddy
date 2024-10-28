@@ -11,9 +11,9 @@ st.title("❓ About")
 
 ready = True
 # Check if the API key is in session_state
-openai_api_key = check_openai_api()
-if openai_api_key is None:
-    ready = False
+# openai_api_key = check_openai_api()
+# if openai_api_key is None:
+#     ready = False
     
 if ready:
 

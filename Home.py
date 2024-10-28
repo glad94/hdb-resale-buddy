@@ -16,7 +16,7 @@ st.write("# HDB Resale Buddy 🤖")
 
 # st.sidebar.success("Select a demo above.")
 # Check if the API key is already stored in session_state
-check_openai_api()
+# check_openai_api()
 
 st.markdown(
     """

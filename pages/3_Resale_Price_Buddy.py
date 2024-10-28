@@ -308,7 +308,7 @@ def run():
                 
                 # Update total rows retrieved
                 total_retrieved += len(df)
-                st.chat_message("AI").write(f"Retrieved {len(df)} rows (Total: {total_retrieved} rows)")
+                # st.chat_message("AI").write(f"Retrieved {len(df)} rows (Total: {total_retrieved} rows)")
                 
                 # If less than 10,000 rows are returned, break the loop as it's the last page
                 if len(df) < 10000:

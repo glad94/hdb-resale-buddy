@@ -322,12 +322,17 @@ def run():
             # response = requests.get(url, params=api_params, headers=headers)
             # df = pd.DataFrame(response.json()['result']['records'])
             if not all_dataframes:
-                final_df = pd.concat(all_dataframes, ignore_index=True)
-            else: # Handle case of no data retrieved
+                # Handle case of no data retrieved
                 final_df = pd.DataFrame([])
-            st.chat_message("AI").write(f"""
-                Retrieved the following data with total {total_retrieved} rows (up to first 100 shown)
-                    """)
+                st.chat_message("AI").write(f"""
+                    Apologies, I failed to retreive any data from Data.gov.sg. Please check that you've entered your 
+                    query correctly or if I made a mistake interpreting it!
+                        """)
+            else: 
+                final_df = pd.concat(all_dataframes, ignore_index=True)
+                st.chat_message("AI").write(f"""
+                    Retrieved the following data with total {total_retrieved} rows (up to first 100 shown)
+                        """)
             st.write(final_df.head(100))
             return {
                 "data": final_df.to_json()

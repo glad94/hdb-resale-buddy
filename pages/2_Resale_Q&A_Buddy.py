@@ -1,6 +1,7 @@
-__import__('pysqlite3')
-import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+# Needed for Streamlit Cloud Version to work
+# __import__('pysqlite3')
+# import sys
+# sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 import os
 import time
@@ -25,9 +26,9 @@ from utility import check_password, check_openai_api
 st.set_page_config(page_title="HDB Resale Q&A Buddy ", page_icon="🏢")
 st.title("🏢 HDB Resale Q&A Buddy ")
 
-# Do not continue if check_password is not True.  
-if not check_password():  
-    st.stop()
+# # Do not continue if check_password is not True.  
+# if not check_password():  
+#     st.stop()
 # endregion <--------- Streamlit Page Configuration --------->
 
 

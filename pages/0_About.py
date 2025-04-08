@@ -3,9 +3,9 @@ from utility import check_password, check_openai_api
 
 st.set_page_config(page_title="About", page_icon="❓")
 
-# Do not continue if check_password is not True.  
-if not check_password():  
-    st.stop()
+# # Do not continue if check_password is not True.  
+# if not check_password():  
+#     st.stop()
 # endregion <--------- Streamlit Page Configuration --------->
 st.title("❓ About")
 

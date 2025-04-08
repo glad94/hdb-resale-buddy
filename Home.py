@@ -7,9 +7,9 @@ st.set_page_config(
     page_icon="🤖",
 )
 
-# Do not continue if check_password is not True.  
-if not check_password():  
-    st.stop()
+# # Do not continue if check_password is not True.  
+# if not check_password():  
+#     st.stop()
 # endregion <--------- Streamlit Page Configuration --------->
 
 st.write("# HDB Resale Buddy 🤖")

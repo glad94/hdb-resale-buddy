@@ -7,6 +7,7 @@ langchain_openai==0.2.3
 langgraph==0.2.39
 pandas==2.2.3
 protobuf==3.20.2
+pydantic==2.9.2
 pysqlite3-binary==0.5.4
 Requests==2.32.3
 streamlit==1.39.0
